@@ -1,14 +1,12 @@
 import { Routes } from '@angular/router';
-import { TakeQuizComponent } from './components/take-quiz.component';
-import { DashboardComponent } from './components/dashboard.component';
-import { EditQuizComponent } from './components/edit-quiz.component';
-import { CreateQuizComponent } from './components/create-quiz.component';
+import { SearchScreen } from './components/search-screen';
+import { TakeQuiz } from './components/take-quiz.component';
+import { EditScreen } from './components/edit-screen';
 
 export const routes: Routes = [
-    { path: 'home', component: DashboardComponent },
-    { path: 'create', component: CreateQuizComponent },
-    { path: 'test/:id', component: TakeQuizComponent },
-    { path: 'edit/:id', component: EditQuizComponent },
+    { path: 'home', component: SearchScreen },
+    { path: 'test/:id', component: TakeQuiz },
+    { path: 'edit/:id', component: EditScreen },
     { path: '', redirectTo: 'home', pathMatch: 'full' },
     { path: '**', redirectTo: 'home' },
 ];

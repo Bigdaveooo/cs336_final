@@ -1,238 +1,610 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Quizzes, Question, Quiz } from '../quizzes';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
-import { Quiz, Question } from '../models';
-import { QuizService } from '../quiz.service';
 
 @Component({
-  selector: 'app-take-quiz',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
-    <div class="container">
-      @if (quiz() && !showResults()) {
-        <div class="modal-content" style="position: static; max-width: 600px; margin: 2rem auto;">
-          <h2 class="modal-title">{{ quiz()!.name }}</h2>
-          <p>Question {{ currentQuestionIndex() + 1 }} of {{ quiz()!.questions.length }}</p>
+  selector: 'app-test-screen',
+  imports: [FormsModule],
+  template: /*html*/`
+    <div id="back-button" class="button" (click)="goToSearchScreen()">
+      <i class="fa-solid fa-arrow-left"></i> Back
+    </div>
+    <h1 class="centered title">{{title}}</h1>
+    
+    @if (questions().length > 0) {
+      <div class="test-container">
+        <div class="progress-bar" role="progressbar" aria-valuemin="0" [attr.aria-valuenow]="progressPercentRounded()" aria-valuemax="100">
+          <div class="progress-text centered">
+            Question {{currentQuestionIndex() + 1}} of {{questions().length}}
+          </div>  
+          <div class="progress-track">
+            <div class="progress-fill" [style.width.%]="progressPercent()"></div>
+            <span>{{answeredCount()}} answered ({{progressPercentRounded()}}%)</span>
+          </div>
+          <div class="correct-track">
+            <div class="correct-fill" [style.width.%]="correctOfTotalPercent()"></div>
+            <span>{{correctCount()}} correct ({{correctPercentRounded()}}%)</span>
+          </div>
+        </div>
+        
+        <div class="question-card container">
+          <h2 class="question-text">{{currentQuestion().term}}</h2>
           
-          @if (currentQuestion()) {
-            <div class="form-group">
-              <label class="form-label">{{ currentQuestion()!.question }}</label>
+          <div class="answer-section">
+            @if (!showAnswer()) {
               <input 
                 type="text" 
-                class="form-input" 
-                [(ngModel)]="currentAnswer"
-                placeholder="Enter your answer"
-                (keyup.enter)="nextQuestion()"
-              />
-            </div>
-            
-            <div class="modal-buttons">
-              @if (currentQuestionIndex() < quiz()!.questions.length - 1) {
-                <button class="modal-button primary-button" (click)="nextQuestion()">
-                  Next Question
-                </button>
-              } @else {
-                <button class="modal-button primary-button" (click)="finishQuiz()">
-                  Finish Quiz
-                </button>
-              }
-              <button class="modal-button secondary-button" (click)="cancel()">
-                Exit Quiz
-              </button>
-            </div>
-          }
-        </div>
-      } @else if (showResults()) {
-        <div class="modal-content" style="position: static; max-width: 600px; margin: 2rem auto;">
-          <h2 class="modal-title">Quiz Complete!</h2>
-          <h3 style="text-align: center; color: #4285f4; margin: 2rem 0;">
-            Score: {{ score() }}/{{ totalQuestions() }} ({{ percentage() }}%)
-          </h3>
-          
-          <div style="margin: 2rem 0;">
-            <h4 style="margin-bottom: 1rem;">Results:</h4>
-            @for (result of detailedResults(); track $index) {
-              <div style="margin-bottom: 1rem; padding: 1rem; border-radius: 6px; background: #f8f9fa;">
-                <p><strong>Q:</strong> {{ result.question }}</p>
-                <p><strong>Your Answer:</strong> {{ result.userAnswer }}</p>
-                <p><strong>Correct Answer:</strong> {{ result.correctAnswer }}</p>
-                <p style="color: {{ result.isCorrect ? '#4caf50' : '#f44336' }};">
-                  <strong>{{ result.isCorrect ? '✓ Correct' : '✗ Incorrect' }}</strong>
-                </p>
+                class="answer-input" 
+                [(ngModel)]="userAnswer"
+                placeholder="Type your answer here..."
+                (keyup.enter)="checkAnswer()">
+              <button class="button check-button" (click)="checkAnswer()">Check Answer</button>
+            } @else {
+              <div class="answer-reveal" [class.correct]="isCurrentAnswerCorrect()" [class.incorrect]="!isCurrentAnswerCorrect()">
+                <div class="result-indicator">
+                  @if (isCurrentAnswerCorrect()) {
+                    <i class="fa-solid fa-circle-check"></i>
+                    <h3>Correct!</h3>
+                  } @else {
+                    <i class="fa-solid fa-circle-xmark"></i>
+                    <h3>Incorrect</h3>
+                  }
+                </div>
+                <div class="answer-details">
+                  <div>
+                    <p class="correct-answer-label">Correct Answer:</p>
+                    <p class="correct-answer">{{currentQuestion().definition}}</p>
+                </div>
+                  @if (!isCurrentAnswerCorrect()) {
+                    <div>
+                      <p class="user-answer-label">Your answer:</p>
+                      <p class="user-answer">{{userAnswer}}</p>
+                    </div>
+                    <div id="i-was-right" class="button" (click)="claimCorrect()">I was right</div>
+                  }
+                </div>
               </div>
             }
           </div>
-          
-          <div class="modal-buttons">
-            <button class="modal-button primary-button" (click)="retakeQuiz()">
-              Retake Quiz
+        </div>
+
+        <div class="navigation-buttons">
+          <button 
+            class="button nav-button" 
+            (click)="previousQuestion()" 
+            [disabled]="currentQuestionIndex() === 0">
+            <i class="fa-solid fa-chevron-left"></i> Previous
+          </button>
+          @if(currentQuestionIndex() < questions().length - 1) {
+            <button 
+              class="button nav-button" 
+              (click)="nextQuestion()">
+              Next <i class="fa-solid fa-chevron-right"></i>
             </button>
-            <button class="modal-button secondary-button" (click)="backToDashboard()">
-              Back to Dashboard
+          } @else {
+            <button 
+              id="view-results-button"
+              class="button nav-button" 
+              (click)="viewResults()">
+              Results <i class="fa-solid fa-chevron-right"></i>
             </button>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="centered" style="margin-top: 50px;">
+        <p>No questions in this quiz yet.</p>
+      </div>
+    }
+
+
+    @if(viewingResults()) {
+      <div class="results-blur-background">
+        <div class="results-container">
+          <h1 class="centered title">{{title}}</h1>
+          <h2 class="centered">Quiz Results</h2>
+          <p class="centered">You answered {{correctCount()}} out of {{questions().length}} questions correctly ({{correctPercentRounded()}}%).</p>
+          <div class="results-buttons-container centered">
+            <div id="results-back" class="button results-button" (click)="goToSearchScreen()">Back to Quiz Selection</div>
+            <div id="results-retake" class="button results-button" (click)="refresh()">Retake Quiz</div>
+            <div id="results-close" class="button results-button" (click)="viewingResults.set(false)">Close</div>
           </div>
         </div>
-      } @else {
-        <div style="text-align: center; padding: 2rem;">
-          @if (quiz() && quiz()!.questions.length === 0) {
-            <h2>This quiz has no questions yet</h2>
-            <p>Please add some questions to this quiz before taking it.</p>
-          } @else {
-            <h2>Quiz not found</h2>
-          }
-          <button class="modal-button primary-button" (click)="cancel()">
-            Back to Dashboard
-          </button>
-        </div>
-      }
-    </div>
-  `
+      </div>
+    }
+  `,
+  styles: /*css*/`
+    .test-container {
+      position: absolute;
+      top: 60px;
+      left: 10%;
+      right: 10%;
+      bottom: 10px;
+      margin: 20px auto;
+      padding: 10px;
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+      border: 4px solid black;
+      background-color: #e0e0e0;
+      overflow: auto;
+      scrollbar-color: gray transparent;
+    }
+
+    .progress-bar {
+      background-color: var(--container-bg-color);
+      border: 4px solid var(--elem-border-color);
+      border-radius: 15px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .progress-track, .correct-track {
+      width: 100%;
+      height: 18px;
+      background: #2244aa;
+      border: 2px solid var(--elem-border-color);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill, .correct-fill {
+      position: absolute;
+      left: 0px;
+      top: 0px;
+      height: 100%;
+      transition: width 200ms ease-out;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, #9000ff, #bb00ff);
+    }
+
+    .correct-fill {
+      background: linear-gradient(90deg, #00ff95ff, #00ff04ff);
+    }
+
+    .progress-track span, .correct-track span {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      font-weight: bold;
+      user-select: none;
+      z-index: 10;
+    }
+
+    .progress-text {
+      text-align: center;
+      font-size: 1rem;
+      font-weight: bold;
+    }
+
+    .question-card {
+      padding: 15px 40px;
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      border: 4px solid var(--elem-border-color);
+      flex: 1;
+    }
+
+    .question-text {
+      font-size: 28px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .answer-section {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .answer-input {
+      width: 80%;
+      padding: 15px;
+      font-size: 18px;
+      border: 2px solid var(--elem-border-color);
+      border-radius: 10px;
+      background-color: #e0e0e0;
+      text-align: center;
+    }
+
+    .check-button {
+      padding: 15px 40px;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 10px;
+    }
+
+    .answer-reveal {
+      width: 80%;
+      padding: 20px;
+      background-color: var(--dark-elem-bg-color);
+      border: 4px solid var(--dark-elem-border-color);
+      border-radius: 10px;
+      text-align: center;
+      position: relative;
+    }
+
+    .answer-reveal.correct {
+      border-color: #00aa00;
+      background-color: #004400;
+    }
+
+    .answer-reveal.incorrect {
+      border-color: #aa0000;
+      background-color: #440000;
+    }
+
+    .result-indicator {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .result-indicator i {
+      font-size: 40px;
+    }
+
+    .answer-reveal.correct .result-indicator i {
+      color: #00ff00;
+    }
+
+    .answer-reveal.incorrect .result-indicator i {
+      color: #ff0000;
+    }
+
+    .result-indicator h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .answer-reveal.correct .result-indicator h3 {
+      color: #00ff00;
+    }
+
+    .answer-reveal.incorrect .result-indicator h3 {
+      color: #ff0000;
+    }
+
+    .answer-details {
+      border-top: 2px solid rgba(255, 255, 255, 0.2);
+      padding-top: 20px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-evenly;
+    }
+
+    .answer-reveal h3 {
+      color: white;
+      margin-top: 0;
+    }
+
+    .correct-answer-label,
+    .user-answer-label {
+      color: #cccccc;
+      font-size: 16px;
+      margin: 10px 0 5px 0;
+      font-weight: bold;
+    }
+
+    .correct-answer {
+      font-size: 22px;
+      font-weight: bold;
+      color: #00ff00;
+      margin: 5px 0 15px 0;
+    }
+
+    .user-answer {
+      font-size: 20px;
+      color: #ffaa00;
+      margin: 5px 0;
+    }
+
+    #i-was-right {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      border-radius: 10px;
+    }
+
+    .navigation-buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .nav-button {
+      flex: 1;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 10px;
+    }
+
+    .nav-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .nav-button:disabled:hover {
+      background-color: var(--elem-bg-color);
+      border-color: var(--elem-border-color);
+    }
+
+    #view-results-button {
+      background-color: green;
+      border-color: darkgreen;
+      color: white;
+    }
+
+    #view-results-button:hover {
+      background-color: #006600;
+      border-color: #004400;
+    }
+
+    #back-button {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      border-radius: 10px;
+    }
+
+
+    .results-blur-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+      z-index: 50;
+    }
+
+    .results-container {
+      position: absolute;
+      top: 20%;
+      left: 25%;
+      right: 25%;
+      bottom: 20%;
+      padding: 20px;
+      border-radius: 15px;
+      border: 4px solid black;
+      background-color: #e0e0e0;
+      overflow: auto;
+      scrollbar-color: gray transparent;
+      z-index: 100;
+    }
+
+    .results-buttons-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 20px;
+      width: 50%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .results-button {
+      display: inline-block;
+      border-radius: 10px;
+      width: 100%;
+      font-weight: bold;
+    }
+
+
+    #results-back {
+      background-color: #0067d5ff;
+      border-color: #004a9aff;
+      color: white;
+    }
+
+    #results-back:hover {
+      background-color: #004ea0ff;
+      border-color: #00356eff;
+    }
+
+    #results-retake {
+      background-color: darkorange;
+      border-color: orangered;
+      color: white;
+    }
+
+    #results-retake:hover {
+      background-color: #aa6600;
+      border-color: #885500;
+    }
+    
+    #results-close {
+      background-color: red;
+      border-color: darkred;
+      color: white;
+    }
+
+    #results-close:hover {
+      background-color: darkred;
+      border-color: red;
+    }
+  `,
 })
-export class TakeQuizComponent {
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private quizService = inject(QuizService);
-
-  quiz = signal<Quiz | null>(null);
+export class TakeQuiz {
+  id = signal(0);
+    quizzesService = inject(Quizzes);
+  questions = signal<Question[]>([]);
+  quiz = signal<any>(null);
   currentQuestionIndex = signal(0);
-  currentAnswer = '';
-  userAnswers: { questionId: string; answer: string }[] = [];
-  showResults = signal(false);
+  showAnswer = signal(false);
+  userAnswer = '';
   
-  // Results
-  score = signal(0);
-  totalQuestions = signal(0);
-  percentage = signal(0);
-  detailedResults = signal<Array<{
-    question: string;
-    userAnswer: string;
-    correctAnswer: string;
-    isCorrect: boolean;
-  }>>([]);
+  // Track answers, submitted state, and correctness for each question by question ID
+  private answerMap = new Map<number, { answer: string; submitted: boolean; correct: boolean }>();
+  
+  private activatedRoute = inject(ActivatedRoute);
 
-  currentQuestion = computed(() => {
-    const quiz = this.quiz();
-    if (!quiz) return null;
-    return quiz.questions[this.currentQuestionIndex()] || null;
-  });
+  constructor() {
+    this.activatedRoute.params.subscribe((params) => {
+      this.id.set(parseInt(params['id']));
+    });
 
-  async ngOnInit() {
-    const quizId = this.route.snapshot.params['id'];
-    console.log('Taking quiz ID:', quizId);
-    
-    // For now, use sample data
-    const sampleQuizzes: Quiz[] = [
-      {
-        id: '1',
-        name: 'Harry Potter Trivia',
-        categoryId: '1',
-        questions: [
-          { id: '1', question: 'Who is the main character?', answer: 'Harry Potter' },
-          { id: '2', question: 'What school does he attend?', answer: 'Hogwarts' },
-          { id: '3', question: 'What is his house?', answer: 'Gryffindor' },
-          { id: '4', question: 'Who is his best friend?', answer: 'Ron Weasley' },
-          { id: '5', question: 'What is his owl\'s name?', answer: 'Hedwig' }
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: '2',
-        name: 'Christmas carol quiz',
-        categoryId: '1',
-        questions: [
-          { id: '1', question: 'Who wrote A Christmas Carol?', answer: 'Charles Dickens' },
-          { id: '2', question: 'What is the main character\'s name?', answer: 'Ebenezer Scrooge' },
-          { id: '3', question: 'How many ghosts visit Scrooge?', answer: '4' }
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      // Add more sample quizzes as needed
-    ];
+    this.quizzesService.fetchedQuestions$.subscribe((_: any) => {
+      this.questions.set(this.quizzesService.getQuizQuestions(this.id()));
+      this.quiz.set(this.quizzesService.getQuizByID(this.id()));
+    });
+  }
 
-    const foundQuiz = sampleQuizzes.find(q => q.id === quizId);
-    this.quiz.set(foundQuiz || null);
-    
-    // Reset state
-    this.currentQuestionIndex.set(0);
-    this.currentAnswer = '';
-    this.userAnswers = [];
-    this.showResults.set(false);
+  currentQuestion() {
+    return this.questions()[this.currentQuestionIndex()];
+  }
+
+  checkAnswer() {
+    const questionId = this.currentQuestion().id;
+
+    const reducedUserAnswer = this.userAnswer.trim().toLocaleLowerCase();
+    const reducedCorrectAnswer = this.currentQuestion().definition.trim().toLocaleLowerCase();
+    const isCorrect = reducedUserAnswer === reducedCorrectAnswer;
+
+    this.answerMap.set(questionId, { answer: this.userAnswer, submitted: true, correct: isCorrect });
+    this.showAnswer.set(true);
   }
 
   nextQuestion() {
-    const currentQ = this.currentQuestion();
-    if (!currentQ) return;
-
-    // Save current answer
-    this.userAnswers.push({
-      questionId: currentQ.id,
-      answer: this.currentAnswer.trim()
-    });
-
-    this.currentQuestionIndex.update(index => index + 1);
-    this.currentAnswer = '';
+    if (this.currentQuestionIndex() < this.questions().length - 1) {
+      this.saveCurrentAnswer();
+      this.currentQuestionIndex.set(this.currentQuestionIndex() + 1);
+      this.loadQuestionState();
+    }
   }
 
-  finishQuiz() {
-    const currentQ = this.currentQuestion();
-    if (!currentQ || !this.quiz()) return;
+  previousQuestion() {
+    if (this.currentQuestionIndex() > 0) {
+      this.saveCurrentAnswer();
+      this.currentQuestionIndex.set(this.currentQuestionIndex() - 1);
+      this.loadQuestionState();
+    }
+  }
 
-    // Save final answer
-    this.userAnswers.push({
-      questionId: currentQ.id,
-      answer: this.currentAnswer.trim()
-    });
+  private saveCurrentAnswer() {
+    const questionId = this.currentQuestion().id;
+    // Only save if not already submitted (submitted answers are already saved)
+    if (!this.showAnswer()) {
+      this.answerMap.set(questionId, { answer: this.userAnswer, submitted: false, correct: false });
+    }
+  }
 
-    // Calculate score
-    let correctCount = 0;
-    const results: Array<{
-      question: string;
-      userAnswer: string;
-      correctAnswer: string;
-      isCorrect: boolean;
-    }> = [];
+  claimCorrect() {
+    const questionId = this.currentQuestion().id;
+    this.answerMap.set(questionId, { answer: this.userAnswer, submitted: true, correct: true });
+    this.showAnswer.set(true);
+  }
 
-    for (const userAnswer of this.userAnswers) {
-      const question = this.quiz()!.questions.find(q => q.id === userAnswer.questionId);
-      if (question) {
-        const isCorrect = userAnswer.answer.toLowerCase().trim() === question.answer.toLowerCase().trim();
-        if (isCorrect) correctCount++;
-        
-        results.push({
-          question: question.question,
-          userAnswer: userAnswer.answer || '(No answer)',
-          correctAnswer: question.answer,
-          isCorrect
-        });
+  private loadQuestionState() {
+    const questionId = this.currentQuestion().id;
+    const savedState = this.answerMap.get(questionId);
+    
+    if (savedState) {
+      this.userAnswer = savedState.answer;
+      this.showAnswer.set(savedState.submitted);
+    } else {
+      this.userAnswer = '';
+      this.showAnswer.set(false);
+    }
+  }
+
+  isCurrentAnswerCorrect(): boolean {
+    const questionId = this.currentQuestion().id;
+    const savedState = this.answerMap.get(questionId);
+    return savedState?.correct ?? false;
+  }
+
+  get title(): string {
+    return this.quiz() ? this.quiz().title : '...';
+  }
+
+  goToSearchScreen(): void {
+    window.location.href = `/`;
+  }
+
+  answeredCount(): number {
+    const qs = this.questions();
+    let count = 0;
+    for (const q of qs) {
+      const s = this.answerMap.get(q.id);
+      if (s?.submitted) count++;
+    }
+    return count;
+  }
+
+  anyAnswered(): boolean {
+    return this.answeredCount() > 0;
+  }
+
+  progressPercent(): number {
+    const total = this.questions().length;
+    if (!total) return 0;
+    return (this.answeredCount() / total) * 100;
+  }
+
+  progressPercentRounded(): number {
+    return Math.round(this.progressPercent());
+  }
+
+  correctCount(): number {
+    const qs = this.questions();
+    let count = 0;
+    for (const q of qs) {
+      const s = this.answerMap.get(q.id);
+      if (s?.correct) count++;
+    }
+    return count;
+  }
+
+  correctPercent(): number {
+    const answered = this.answeredCount();
+    if (!answered) return 0;
+    return Math.round((this.correctCount() / answered) * 100);
+  }
+
+  correctOfTotalPercent(): number {
+    const total = this.questions().length;
+    if (!total) return 0;
+    return (this.correctCount() / total) * 100;
+  }
+
+  correctPercentRounded(): number {
+    return Math.round(this.correctPercent());
+  }
+
+
+
+  viewingResults = signal(false);
+
+  viewResults() {
+    if (this.answeredCount() < this.questions().length) {
+      const confirmProceed = confirm('You have unanswered questions. Are you sure you want to view results?');
+      if (!confirmProceed) {
+        return;
       }
     }
 
-    const total = this.quiz()!.questions.length;
-    const percent = total > 0 ? Math.round((correctCount / total) * 100) : 0;
-
-    this.score.set(correctCount);
-    this.totalQuestions.set(total);
-    this.percentage.set(percent);
-    this.detailedResults.set(results);
-    this.showResults.set(true);
+    this.viewingResults.set(true);
   }
 
-  retakeQuiz() {
-    this.currentQuestionIndex.set(0);
-    this.currentAnswer = '';
-    this.userAnswers = [];
-    this.showResults.set(false);
-  }
 
-  backToDashboard() {
-    this.router.navigate(['/']);
-  }
-
-  cancel() {
-    this.router.navigate(['/']);
+  refresh() {
+    window.location.reload();
   }
 }

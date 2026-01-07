@@ -2,18 +2,32 @@
 
 html {
     /* Theme */
-    --bg-color-main: #0d1b2a; /* dark blue background */
-    --text-color-main: #e6edf7; /* light text for contrast on dark bg */
-    --accent-color: #2563eb; /* primary accent blue */
-    --accent-color-hover: #1d4ed8; /* darker accent on hover */
+    --bg-color-main: #0b1220; /* deep navy */
+    --text-color-main: #e5e7eb; /* slate-100 */
+    --accent-color: #6366f1; /* indigo */
+    --accent-color-hover: #4f46e5; /* deeper indigo */
 
     /* Surfaces */
     --container-max-width: 1200px;
     --card-bg-color: #ffffff; /* white card */
     --card-text-color: #0f172a; /* dark slate text */
-    --card-border-color: rgba(30, 58, 138, 0.18); /* subtle blue border */
-    --card-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-    --card-shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.22);
+    --card-border-color: rgba(148, 163, 184, 0.35); /* slate border */
+    --card-shadow: 0 10px 30px rgba(2, 6, 23, 0.18);
+    --card-shadow-hover: 0 14px 40px rgba(2, 6, 23, 0.24);
+
+    /* App-specific tokens (referenced by components) */
+    --container-bg-color: rgba(255, 255, 255, 0.04);
+    --elem-bg-color: rgba(255, 255, 255, 0.06);
+    --elem-border-color: rgba(148, 163, 184, 0.35);
+
+    --dark-elem-bg-color: rgba(15, 23, 42, 0.92);
+    --dark-elem-border-color: rgba(148, 163, 184, 0.28);
+    --dark-elem-hover-bg-color: rgba(15, 23, 42, 1);
+    --dark-elem-hover-border-color: rgba(148, 163, 184, 0.42);
+
+    --success-color: #22c55e;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
 }
 
 body {
@@ -36,7 +50,7 @@ body {
 .dropdown > summary {
     cursor: pointer;
     list-style: none;
-    color: #ffffff;
+    color: var(--text-color-main);
     font-weight: 600;
     padding: 6px 4px;
     display: flex;
@@ -76,7 +90,7 @@ body {
 }
 
 .hero-title {
-    color: #ffffff;
+    color: var(--text-color-main);
     font-weight: 700;
     letter-spacing: 0.5px;
     text-align: center;
@@ -117,7 +131,7 @@ body {
 
 .card p {
     margin: 0 0 12px;
-    color: #334155;
+    color: rgba(15, 23, 42, 0.72);
 }
 
 .actions {
@@ -179,7 +193,7 @@ button:hover, .button:hover {
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(13, 27, 42, 0.6);
+    background: rgba(2, 6, 23, 0.55);
     display: flex;
     justify-content: center;
     align-items: center;

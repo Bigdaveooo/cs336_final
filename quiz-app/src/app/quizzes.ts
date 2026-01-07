@@ -1,7 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Timestamp, query, orderBy, collectionData, addDoc, collection, Firestore, serverTimestamp, where, updateDoc, doc, getDocs, deleteDoc } from '@angular/fire/firestore';
-import { CollectionReference, DocumentData } from '@angular/fire/compat/firestore';
 
 
 export interface Question {
@@ -47,7 +46,7 @@ export interface UserReq {
 @Injectable({
   providedIn: 'root',
 })
-export class Quizes {
+export class Quizzes {
   firestore = inject(Firestore);
 
   fetchedQuizes$: Observable<QuizReq[]>;

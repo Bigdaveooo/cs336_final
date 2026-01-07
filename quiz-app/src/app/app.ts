@@ -1,13 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [],
-  template: `<div style="background: red; color: white; padding: 20px; font-size: 24px; min-height: 100vh;">ANGULAR IS WORKING - TEST 2</div>`,
-  styles: []
+  imports: [RouterOutlet],
+  template: /*html*/`
+    <router-outlet></router-outlet>
+  `,
+  styles: [],
 })
 export class App {
-  constructor() {
-    console.log('App component loaded successfully!');
-  }
+  
 }

@@ -1,6 +1,5 @@
 import { ApplicationConfig, importProvidersFrom, isDevMode, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideClientHydration } from '@angular/platform-browser';
 
 import { routes } from './app.routes';
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
@@ -11,7 +10,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideClientHydration(),
     provideFirebaseApp(() => initializeApp({ apiKey: "AIzaSyAfBSnbyf5hg8XczVTxIOdBylcIY0G1lcg",
                                              authDomain: "cs336-quiz-app.firebaseapp.com",
                                              projectId: "cs336-quiz-app",
