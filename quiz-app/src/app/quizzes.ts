@@ -4,10 +4,9 @@ import { Timestamp, query, orderBy, collectionData, addDoc, collection, Firestor
 import { CollectionReference, DocumentData } from '@angular/fire/compat/firestore';
 
 
-
 export interface Question {
   id: number;
-  term: string; // actually ends up being more like "question" and "answer", tough to change now
+  term: string;
   definition: string;
 }
 
@@ -23,8 +22,6 @@ export interface User {
   password: string;
   quizes: number[];
 }
-
-
 
 export interface QuestionReq {
   id: number;
@@ -45,7 +42,6 @@ export interface UserReq {
   password: string;
   quizes: string;
 }
-
 
 
 @Injectable({
@@ -77,8 +73,6 @@ export class Quizes {
     const questionQuery = query(this.questionCollection, orderBy('id', 'asc'));
     this.fetchedQuestions$ = collectionData(questionQuery) as Observable<QuestionReq[]>;
 
-
-
     this.fetchedQuizes$.subscribe((quizData) => {
       const quizzes: Quiz[] = quizData.map(quiz => ({
         id: quiz.id,
@@ -105,7 +99,6 @@ export class Quizes {
   }
 
 
-
   getQuizQuestions(quizID: number): Question[] {
     const quiz = this.getQuizByID(quizID);
     if (!quiz) {
@@ -123,8 +116,6 @@ export class Quizes {
     return quizQuestions;
   }
 
-
-
   getQuizByID(quizID: number): Quiz | undefined {
     return this.quizes().find(q => q.id === quizID);
   }
@@ -132,8 +123,6 @@ export class Quizes {
   getQuestionByID(questionID: number): Question | undefined {
     return this.questions().find(q => q.id === questionID);
   }
-
-
 
 
   newQuiz(title: string) {
@@ -147,7 +136,6 @@ export class Quizes {
     };
     addDoc(this.quizCollection, {id: newQuiz.id, title: newQuiz.title, questionCount: newQuiz.qCount, questions: newQuiz.questions.join(',')});
   }
-
 
   async newQuestion(ownedByID: number, term: string, definition: string) {
     const newQuestionID = this.maxQuestionID() + 1;
@@ -166,7 +154,6 @@ export class Quizes {
     }
   }
 
-
   async updateQuizTitle(quizID: number, title: string) {
     // Find the quiz document in Firestore
     const quizQuery = query(this.quizCollection, where('id', '==', quizID));
@@ -179,7 +166,6 @@ export class Quizes {
       await updateDoc(quizDocRef, { title: title });
     }
   }
-
 
   async updateQuizQuestions(quizID: number, questions: number[]) {
     // somehow a 0 gets in the questions list sometimes, even though there never was a question
@@ -197,8 +183,6 @@ export class Quizes {
       await updateDoc(quizDocRef, { questions: questions.join(','), questionCount: questions.length });
     }
   }
-
-
 
   async updateQuestion(QuestionID: number, question: string, answer: string) {
     // Find the question document in Firestore

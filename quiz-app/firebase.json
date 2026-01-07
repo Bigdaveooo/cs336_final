@@ -6,7 +6,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "quiz-app/dist/quiz-app/browser",
+    "public": "dist/quiz-app/browser",
     "ignore": [
       "firebase.json",
       "**/.*",
