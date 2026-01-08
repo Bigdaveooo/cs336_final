@@ -21,6 +21,7 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
       </div>
     </div>
     <div class="title-row">
+      <div class="title-label">Title</div>
       <input
         class="title-input"
         [value]="titleDraft()"
@@ -28,11 +29,34 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
         (blur)="saveTitle()"
         placeholder="Quiz title"
       />
+
+      <div class="title-label title-label--spaced">Category</div>
+      <div class="category-row">
+        <select
+          class="category-select"
+          [value]="categorySelection()"
+          (change)="onCategoryChange($any($event.target).value)"
+        >
+          @for (category of categories(); track $index) {
+            <option [value]="category">{{ category }}</option>
+          }
+          <option value="__new__">Create new category…</option>
+        </select>
+
+        @if (categorySelection() === '__new__') {
+          <input
+            class="category-new"
+            placeholder="New category name"
+            [value]="newCategoryName()"
+            (input)="newCategoryName.set($any($event.target).value); showSavedCheck.set(false); categoryTouched.set(true)"
+          />
+        }
+      </div>
     </div>
     <div class="example-list questions-container" (cdkDropListDropped)="drop($event)" cdkDropList>
       @for (question of questions(); track $index) {
-        <div class="question-display" cdkDrag>
-          <question-display [questionId]="question.id" [delete]="deleter(question.id)" [question]="question.term" [answer]="question.definition"></question-display>
+        <div class="question-card" cdkDrag>
+          <question-display [questionNumber]="$index + 1" [questionId]="question.id" [delete]="deleter(question.id)" [question]="question.term" [answer]="question.definition"></question-display>
         </div>
       }
       <div class="new-question-button container button centered" (click)="makeNewQuestion()">
@@ -51,44 +75,96 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
     }
 
     .title-row {
-      width: 60%;
-      margin: 70px auto 10px auto;
+      width: min(900px, 92vw);
+      margin: 84px auto 12px auto;
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--card-border-color);
+      box-shadow: var(--card-shadow);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    :host {
+      display: block;
+      min-height: 100vh;
+      padding-bottom: 48px;
+    }
+
+    .title-label {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: rgba(15, 23, 42, 0.70);
+      margin: 0 0 8px 0;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .title-label--spaced {
+      margin-top: 14px;
     }
 
     .title-input {
       width: 100%;
-      font-size: 2rem;
-      font-weight: 600;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 2px solid black;
+      font-size: 1.65rem;
+      font-weight: 800;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
       box-sizing: border-box;
+      background: #ffffff;
+    }
+
+    .category-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .category-select {
+      flex: 1;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      padding: 10px 12px;
+      background: #ffffff;
+    }
+
+    .category-new {
+      flex: 2;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      padding: 10px 12px;
+      background: #ffffff;
     }
 
     .questions-container {
-      width: 60%;
+      width: min(900px, 92vw);
       margin: 0 auto;
-      padding: 20px;
-      border: 4px solid black;
-      border-radius: 15px;
-      background-color: #f0f0f0;
-      max-height: 80vh;
-      overflow-y: auto;
-      scrollbar-color: gray transparent; /* make sure the scrollbar track doesnt clip the border */
+      padding: 18px;
+      border: 1px solid var(--card-border-color);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--card-shadow);
+      overflow: visible;
+      scrollbar-color: rgba(15, 23, 42, 0.25) transparent;
     }
 
-    .question-display {
+    .question-card {
       display: block;
-      padding: 0;
-      margin: 10px;
+      padding: 12px;
+      margin: 12px 0;
+      border-radius: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      background: #ffffff;
     }
 
 
 
     .new-question-button {
-      margin: 10px;
-      padding: 10px;
-      border-radius: 10px;
+      margin: 12px 0 4px 0;
+      padding: 12px;
+      border-radius: 14px;
     }
 
 
@@ -104,10 +180,8 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
 
 
     .cdk-drag-preview {
-      box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
-                  0 8px 10px 1px rgba(0, 0, 0, 0.14),
-                  0 3px 14px 2px rgba(0, 0, 0, 0.12);
-      border-radius: 10px;
+      box-shadow: var(--card-shadow-hover);
+      border-radius: 16px;
       padding: 0px;
       margin: 0px;
     }
@@ -120,11 +194,7 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
       transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
     }
 
-    .question-display:last-child {
-      border: none;
-    }
-
-    .cdk-drop-list-dragging .question-display:not(.cdk-drag-placeholder) {
+    .cdk-drop-list-dragging .question-card:not(.cdk-drag-placeholder) {
       transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
     }
 
@@ -139,12 +209,31 @@ export class EditScreen {
   quiz = signal<any>(null);
   titleDraft = signal('');
   showSavedCheck = signal(false);
+
+  categories = signal<string[]>(['My Quizzes']);
+  categorySelection = signal<string>('My Quizzes');
+  newCategoryName = signal('');
+  categoryTouched = signal(false);
   
   private activatedRoute = inject(ActivatedRoute);
 
   constructor() {
     this.activatedRoute.params.subscribe((params) => {
       this.id.set(parseInt(params['id']));
+    });
+
+    this.quizzesService.fetchedQuizes$.subscribe((quizData: any) => {
+      const cats = new Set<string>();
+      cats.add('My Quizzes');
+      if (quizData && quizData.length > 0) {
+        quizData.forEach((q: any) => cats.add(q.category ?? 'My Quizzes'));
+      }
+      this.categories.set(Array.from(cats));
+
+      const current = quizData?.find((q: any) => q.id === this.id());
+      if (current && !this.categoryTouched()) {
+        this.categorySelection.set(current.category ?? 'My Quizzes');
+      }
     });
 
     this.quizzesService.fetchedQuestions$.subscribe((_: any) => {
@@ -188,15 +277,26 @@ export class EditScreen {
     const title = this.titleDraft().trim();
     const questionIDs = this.questions().map(q => q.id).filter(id => id !== 0);
 
+    const category = this.categorySelection() === '__new__'
+      ? (this.newCategoryName().trim() || 'My Quizzes')
+      : this.categorySelection();
+
     try {
       if (title) {
         await this.quizzesService.updateQuizTitle(quizId, title);
       }
       await this.quizzesService.updateQuizQuestions(quizId, questionIDs);
+      await this.quizzesService.updateQuizCategory(quizId, category);
       this.showSavedCheck.set(true);
     } catch {
       // Intentionally no UI change on failure
     }
+  }
+
+  onCategoryChange(value: string) {
+    this.categorySelection.set(value);
+    this.categoryTouched.set(true);
+    this.showSavedCheck.set(false);
   }
 
 

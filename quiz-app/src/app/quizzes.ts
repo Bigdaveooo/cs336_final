@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Timestamp, query, orderBy, collectionData, addDoc, collection, Firestore, serverTimestamp, where, updateDoc, doc, getDocs, deleteDoc } from '@angular/fire/firestore';
+import { query, orderBy, collectionData, addDoc, collection, Firestore, where, updateDoc, doc, getDocs, deleteDoc } from '@angular/fire/firestore';
 
 
 export interface Question {
@@ -14,6 +14,7 @@ export interface Quiz {
   title: string;
   qCount: number;
   questions: number[];
+  category?: string;
 }
 
 export interface User {
@@ -33,7 +34,7 @@ export interface QuizReq {
   title: string;
   questionCount: number;
   questions: string;
-  category?: string; // optional for existing docs
+  category?: string;
 }
 
 export interface UserReq {
@@ -57,12 +58,29 @@ export class Quizzes {
   maxQuizID = signal<number>(0);
   maxQuestionID = signal<number>(0);
 
-  userCollection: any;
   quizCollection: any;
   questionCollection: any;
 
+  private async getFirstDocIdByField(
+    collectionRef: any,
+    field: string,
+    value: unknown
+  ): Promise<string | null> {
+    const q = query(collectionRef, where(field, '==', value));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    return snapshot.docs[0].id;
+  }
+
+  private async getQuizDocIdById(quizId: number): Promise<string | null> {
+    return this.getFirstDocIdByField(this.quizCollection, 'id', quizId);
+  }
+
+  private async getQuestionDocIdById(questionId: number): Promise<string | null> {
+    return this.getFirstDocIdByField(this.questionCollection, 'id', questionId);
+  }
+
   constructor() {
-    this.userCollection = collection(this.firestore, 'users');
     this.quizCollection = collection(this.firestore, 'quizes');
     this.questionCollection = collection(this.firestore, 'questions');
     
@@ -77,7 +95,11 @@ export class Quizzes {
         id: quiz.id,
         title: quiz.title,
         qCount: quiz.questionCount,
-        questions: quiz.questions.split(',').map(Number),
+        questions: String(quiz.questions ?? '')
+          .split(',')
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isFinite(n) && n !== 0),
+        category: quiz.category ?? 'My Quizzes',
       }));
       this.quizes.set(quizzes);
       const maxId = quizzes.reduce((max, quiz) => quiz.id > max ? quiz.id : max, 0);
@@ -154,57 +176,38 @@ export class Quizzes {
   }
 
   async updateQuizTitle(quizID: number, title: string) {
-    // Find the quiz document in Firestore
-    const quizQuery = query(this.quizCollection, where('id', '==', quizID));
-    const querySnapshot = await getDocs(quizQuery);
-    
-    // Update the document if found
-    if (!querySnapshot.empty) {
-      const quizDoc = querySnapshot.docs[0];
-      const quizDocRef = doc(this.firestore, 'quizes', quizDoc.id);
-      await updateDoc(quizDocRef, { title: title });
-    }
+    const docId = await this.getQuizDocIdById(quizID);
+    if (!docId) return;
+    await updateDoc(doc(this.firestore, 'quizes', docId), { title });
+  }
+
+  async updateQuizCategory(quizID: number, category: string) {
+    const docId = await this.getQuizDocIdById(quizID);
+    if (!docId) return;
+    await updateDoc(doc(this.firestore, 'quizes', docId), { category });
   }
 
   async updateQuizQuestions(quizID: number, questions: number[]) {
-    // somehow a 0 gets in the questions list sometimes, even though there never was a question
-    // with ID 0. But why address the root issue when you can just:
-    questions = questions.filter(q => q !== 0)
+    questions = questions.filter(q => q !== 0);
 
-    // Find the quiz document in Firestore
-    const quizQuery = query(this.quizCollection, where('id', '==', quizID));
-    const querySnapshot = await getDocs(quizQuery);
-    
-    // Update the document if found
-    if (!querySnapshot.empty) {
-      const quizDoc = querySnapshot.docs[0];
-      const quizDocRef = doc(this.firestore, 'quizes', quizDoc.id);
-      await updateDoc(quizDocRef, { questions: questions.join(','), questionCount: questions.length });
-    }
+    const docId = await this.getQuizDocIdById(quizID);
+    if (!docId) return;
+    await updateDoc(doc(this.firestore, 'quizes', docId), {
+      questions: questions.join(','),
+      questionCount: questions.length,
+    });
   }
 
   async updateQuestion(QuestionID: number, question: string, answer: string) {
-    // Find the question document in Firestore
-    const questionQuery = query(this.questionCollection, where('id', '==', QuestionID));
-    const querySnapshot = await getDocs(questionQuery);
-    
-    // Update the document if found
-    if (!querySnapshot.empty) {
-      const questionDoc = querySnapshot.docs[0];
-      const questionDocRef = doc(this.firestore, 'questions', questionDoc.id);
-      await updateDoc(questionDocRef, { term: question, definition: answer });
-    }
+    const docId = await this.getQuestionDocIdById(QuestionID);
+    if (!docId) return;
+    await updateDoc(doc(this.firestore, 'questions', docId), { term: question, definition: answer });
   }
 
   async deleteQuestionFromQuiz(quizID: number, questionID: number) {
-    // Find and delete the question document from Firestore
-    const questionQuery = query(this.questionCollection, where('id', '==', questionID));
-    const questionSnapshot = await getDocs(questionQuery);
-    
-    if (!questionSnapshot.empty) {
-      const questionDoc = questionSnapshot.docs[0];
-      const questionDocRef = doc(this.firestore, 'questions', questionDoc.id);
-      await deleteDoc(questionDocRef);
+    const questionDocId = await this.getQuestionDocIdById(questionID);
+    if (questionDocId) {
+      await deleteDoc(doc(this.firestore, 'questions', questionDocId));
     }
 
     // Remove the question from the quiz's questions array

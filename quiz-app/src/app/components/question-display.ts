@@ -1,99 +1,126 @@
 import { Component, Input, inject } from '@angular/core';
-import { Signal, signal } from '@angular/core';
 import { Quizzes } from '../quizzes';
-import { CdkDrag, CdkDragHandle } from '@angular/cdk/drag-drop';
+import { CdkDragHandle } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'question-display',
   imports: [CdkDragHandle],
   template: /*html*/`
-    <div class="question-display-container container row-flex">
-      <i class="fa-solid fa-grip-lines drag-handle" cdkDragHandle ></i>
-      <div class="question-display-input-section">
-        <label for="question-input">Question</label>
-        <input id="question-input" [value]="question" (input)="onQuestionChange($event)">
-      </div>
-      <div class="question-display-input-section">
-        <label for="answer-input">Answer</label>
-        <input id="answer-input" [value]="answer" (input)="onAnswerChange($event)">
-      </div>
-      <div class="question-display-button-holder">
-        <div class="button question-delete-button" (click)="delete()">
-          <i class="fa-solid fa-trash"></i>
+    <div class="question-display-container">
+      <div class="row">
+        <i class="fa-solid fa-grip-lines drag-handle" cdkDragHandle></i>
+
+        <div class="fields">
+          <div class="field">
+            <label class="field-label" [attr.for]="'question-input-' + questionId">
+              QUESTION @if (questionNumber) { {{ questionNumber }} }
+            </label>
+            <textarea
+              class="field-control"
+              [attr.id]="'question-input-' + questionId"
+              [value]="question"
+              (input)="onQuestionChange($event)"
+              rows="2"
+              placeholder="Type the question…"
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label class="field-label" [attr.for]="'answer-input-' + questionId">Answer</label>
+            <textarea
+              class="field-control"
+              [attr.id]="'answer-input-' + questionId"
+              [value]="answer"
+              (input)="onAnswerChange($event)"
+              rows="2"
+              placeholder="Type the answer…"
+            ></textarea>
+          </div>
         </div>
+
+        <button type="button" class="question-delete-button" (click)="delete()" aria-label="Delete question">
+          <i class="fa-solid fa-trash"></i>
+        </button>
       </div>
     </div>
   `,
   styles: /*css*/`
     .question-display-container {
-      flex: 0 0 150px;
-      padding: 10px;
-      border-radius: 10px;
+      width: 100%;
     }
 
-    .question-delete-button {
-      font-size: 25px;
-      width: 30px;
-      height: 30px;
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 15px;
-      color: #cc0000;
-      background-color: var(--dark-elem-bg-color);
-      border-color: var(--dark-elem-border-color);
-      box-shadow: 2px 2px 4px black;
-    }
-
-    .question-delete-button:hover {
-      background-color: var(--dark-elem-hover-bg-color);
-      border-color: var(--dark-elem-hover-border-color);
-      box-shadow: 1.2px 1.2px 3px black;
-    }
-
-    .question-display-input-section {
-      flex: 2;
-      position: relative;
-    }
-
-    .question-display-button-holder {
-      flex: 1;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: flex-end;
-    }
-
-    .question-display-input-section label {
-      font-size: 20px;
-      text-shadow: 2px 2px 4px purple;
-      font-weight: bold;
-      user-select: none;
-    }
-
-    .question-display-input-section input {
-      font-size: 18px;
-      font-weight: bold;
-      width: 80%;
-      padding: 5px;
-      border: 2px solid black;
-      border-radius: 10px;
-      background-color: #e0e0e0;
+    .row {
+      display: grid;
+      grid-template-columns: 32px 1fr 44px;
+      gap: 12px;
+      align-items: start;
     }
 
     .drag-handle {
-      font-size: 30px;
-      margin-right: 10px;
-      margin-top: auto;
-      margin-bottom: auto;
-      color: white;
+      font-size: 18px;
+      color: rgba(15, 23, 42, 0.55);
       cursor: move;
       user-select: none;
+      padding-top: 10px;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: rgba(15, 23, 42, 0.70);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      user-select: none;
+    }
+
+    .field-control {
+      width: 100%;
+      min-height: 54px;
+      resize: vertical;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 1rem;
+      line-height: 1.4;
+      background: #ffffff;
+      box-sizing: border-box;
+    }
+
+    .question-delete-button {
+      height: 44px;
+      width: 44px;
+      padding: 0;
+      border-radius: 12px;
+      background: rgba(239, 68, 68, 0.10);
+      border: 1px solid rgba(239, 68, 68, 0.22);
+      color: #b91c1c;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 160ms ease, transform 120ms ease;
+    }
+
+    .question-delete-button:hover {
+      background: rgba(239, 68, 68, 0.16);
+      transform: translateY(-1px);
     }
   `,
 })
 export class QuestionDisplay {
+  @Input() questionNumber?: number;
   @Input({ required: true }) questionId!: number;
   @Input({ required: true }) question: any;
   @Input({ required: true }) answer: any;
@@ -102,13 +129,13 @@ export class QuestionDisplay {
   private quizzesService = inject(Quizzes);
 
   onQuestionChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
+    const input = event.target as HTMLTextAreaElement;
     this.question = input.value;
     this.quizzesService.updateQuestion(this.questionId, this.question, this.answer);
   }
 
   onAnswerChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
+    const input = event.target as HTMLTextAreaElement;
     this.answer = input.value;
     this.quizzesService.updateQuestion(this.questionId, this.question, this.answer);
   }

@@ -3,7 +3,6 @@ import { Router } from '@angular/router';
 import { AsyncPipe } from '@angular/common';
 import { map, Observable } from 'rxjs';
 import { Quizzes } from '../quizzes';
-import { QuestionDisplay } from './question-display';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -12,7 +11,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
   template: /*html*/`
     <div class="app-container">
       <header class="header">
-        <h1 class="title">Welcome to the Quiz Maker</h1>
+        <h1 class="title">Kwiz</h1>
         <button class="create-btn" (click)="popupNewQuizCreation()">Create New +</button>
       </header>
 
@@ -94,9 +93,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
   styles: /*css*/`
     .app-container {
       min-height: 100vh;
-
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text-color-main);
     }
 
     .header {
@@ -108,44 +105,52 @@ import { toSignal } from '@angular/core/rxjs-interop';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 40px;
-      background-color: #334155;
+      padding: 14px 28px;
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(10px);
+      border-bottom: 0.5px solid rgba(15, 23, 42, 0.10);
       z-index: 100;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
       box-sizing: border-box;
     }
 
     .title {
-      font-size: 2rem;
-      font-weight: 500;
-      color: white;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-color-main);
       margin: 0;
+      letter-spacing: -0.02em;
     }
 
     .create-btn {
-      background-color: #4F46E5;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 24px;
-      font-size: 1rem;
-      font-weight: 500;
+      background-color: var(--accent-color);
+      color: #ffffff;
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 700;
       cursor: pointer;
-      transition: background-color 0.2s ease;
+      transition: background-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
     }
 
     .create-btn:hover {
-      background-color: #4338CA;
+      background-color: var(--accent-color-hover);
+      box-shadow: 0 10px 22px rgba(2, 132, 199, 0.22);
+      transform: translateY(-1px);
     }
 
     .main-content {
-      padding: 100px 40px 40px 40px;
+      padding: 88px 40px 40px 40px;
     }
 
     .category-section {
       margin-bottom: 32px;
-      border: 1px solid #475569;
-      border-radius: 12px;
+      border: 1px solid var(--card-border-color);
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(10px);
     }
 
     .category-header {
@@ -155,8 +160,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
       padding: 16px 20px;
       cursor: pointer;
       list-style: none;
-      background-color: #475569;
-      border-radius: 12px;
+      background: transparent;
     }
 
     .category-header::-webkit-details-marker {
@@ -166,11 +170,11 @@ import { toSignal } from '@angular/core/rxjs-interop';
     .category-title {
       font-size: 1.25rem;
       font-weight: 600;
-      color: white;
+      color: var(--text-color-main);
     }
 
     .category-arrow {
-      color: white;
+      color: var(--muted-text);
       font-size: 1rem;
       transition: transform 0.2s ease;
     }
@@ -180,7 +184,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
     }
 
     .category-section[open] .category-header {
-      border-radius: 12px 12px 0 0;
+      border-bottom: 1px solid var(--card-border-color);
     }
 
     .quiz-grid {
@@ -188,34 +192,34 @@ import { toSignal } from '@angular/core/rxjs-interop';
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 16px;
       padding: 20px;
-      background-color: #334155;
-      border-radius: 0 0 12px 12px;
+      background: transparent;
     }
 
     .quiz-card {
-      background-color: white;
-      border-radius: 12px;
+      background-color: var(--card-bg-color);
+      border: 1px solid var(--card-border-color);
+      border-radius: 18px;
       padding: 20px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--card-shadow);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
     .quiz-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--card-shadow-hover);
     }
 
     .quiz-title {
       font-size: 1.1rem;
       font-weight: 600;
-      color: #1F2937;
+      color: var(--text-color-main);
       margin: 0 0 8px 0;
       line-height: 1.3;
     }
 
     .quiz-meta {
       font-size: 0.9rem;
-      color: #243b5cff;
+      color: var(--muted-text);
       margin: 0 0 16px 0;
     }
 
@@ -225,38 +229,40 @@ import { toSignal } from '@angular/core/rxjs-interop';
     }
 
     .take-quiz-btn {
-      background-color: #4F46E5;
-      color: white;
-      border: none;
-      border-radius: 8px;
+      background-color: var(--accent-color);
+      color: #ffffff;
+      border: 1px solid transparent;
+      border-radius: 12px;
       padding: 8px 16px;
       font-size: 0.9rem;
-      font-weight: 500;
+      font-weight: 700;
       cursor: pointer;
       flex: 1;
-      transition: background-color 0.2s ease;
+      transition: background-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
     }
 
     .take-quiz-btn:hover {
-      background-color: #4338CA;
+      background-color: var(--accent-color-hover);
+      box-shadow: 0 10px 22px rgba(2, 132, 199, 0.18);
+      transform: translateY(-1px);
     }
 
     .edit-quiz-btn {
-      background-color: #F3F4F6;
-      color: #4B5563;
-      border: 1px solid #D1D5DB;
-      border-radius: 8px;
+      background-color: rgba(15, 23, 42, 0.04);
+      color: rgba(15, 23, 42, 0.80);
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 12px;
       padding: 8px 16px;
       font-size: 0.9rem;
-      font-weight: 500;
+      font-weight: 700;
       cursor: pointer;
       flex: 1;
       transition: background-color 0.2s ease, border-color 0.2s ease;
     }
 
     .edit-quiz-btn:hover {
-      background-color: #E5E7EB;
-      border-color: #9CA3AF;
+      background-color: rgba(15, 23, 42, 0.06);
+      border-color: rgba(15, 23, 42, 0.18);
     }
 
     .search-section {
@@ -266,7 +272,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
     .section-title {
       font-size: 1.5rem;
       font-weight: 600;
-      color: white;
+      color: var(--text-color-main);
       margin-bottom: 20px;
     }
 
@@ -276,8 +282,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(5px);
+      background-color: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -285,18 +291,19 @@ import { toSignal } from '@angular/core/rxjs-interop';
     }
 
     .modal-card {
-      background-color: white;
-      border-radius: 16px;
+      background-color: #ffffff;
+      border: 1px solid var(--card-border-color);
+      border-radius: 18px;
       padding: 32px;
       min-width: 400px;
       max-width: 500px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      box-shadow: var(--card-shadow-hover);
     }
 
     .modal-card h3 {
-      color: #1F2937;
+      color: var(--text-color-main);
       font-size: 1.5rem;
-      font-weight: 600;
+      font-weight: 800;
       margin: 0 0 24px 0;
     }
 
@@ -306,8 +313,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
     .form-group label {
       display: block;
-      color: #374151;
-      font-weight: 500;
+      color: rgba(15, 23, 42, 0.78);
+      font-weight: 700;
       margin-bottom: 6px;
     }
 
@@ -315,18 +322,18 @@ import { toSignal } from '@angular/core/rxjs-interop';
     .form-group select {
       width: 100%;
       padding: 12px;
-      border: 1px solid #D1D5DB;
-      border-radius: 8px;
+      border: 1px solid rgba(15, 23, 42, 0.14);
+      border-radius: 12px;
       font-size: 1rem;
-      background-color: white;
+      background-color: #ffffff;
       box-sizing: border-box;
     }
 
     .form-group input:focus,
     .form-group select:focus {
       outline: none;
-      border-color: #4F46E5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      border-color: rgba(14, 165, 233, 0.55);
+      box-shadow: 0 0 0 4px var(--focus-ring);
     }
 
     .actions {
@@ -336,38 +343,40 @@ import { toSignal } from '@angular/core/rxjs-interop';
     }
 
     .primary-btn {
-      background-color: #4F46E5;
+      background-color: var(--accent-color);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 12px 24px;
       font-size: 1rem;
-      font-weight: 500;
+      font-weight: 800;
       cursor: pointer;
       flex: 1;
-      transition: background-color 0.2s ease;
+      transition: background-color 160ms ease, box-shadow 160ms ease, transform 120ms ease;
     }
 
     .primary-btn:hover {
-      background-color: #4338CA;
+      background-color: var(--accent-color-hover);
+      box-shadow: 0 10px 22px rgba(2, 132, 199, 0.18);
+      transform: translateY(-1px);
     }
 
     .secondary-btn {
-      background-color: white;
-      color: #374151;
-      border: 1px solid #D1D5DB;
-      border-radius: 8px;
+      background-color: rgba(15, 23, 42, 0.04);
+      color: rgba(15, 23, 42, 0.80);
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      border-radius: 12px;
       padding: 12px 24px;
       font-size: 1rem;
-      font-weight: 500;
+      font-weight: 800;
       cursor: pointer;
       flex: 1;
       transition: background-color 0.2s ease, border-color 0.2s ease;
     }
 
     .secondary-btn:hover {
-      background-color: #F9FAFB;
-      border-color: #9CA3AF;
+      background-color: rgba(15, 23, 42, 0.06);
+      border-color: rgba(15, 23, 42, 0.18);
     }
   `,
 })
