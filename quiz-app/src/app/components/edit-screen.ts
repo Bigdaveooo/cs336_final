@@ -4,7 +4,6 @@ import { QuestionDisplay } from './question-display';
 import { Quizzes } from '../quizzes';
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 
-
 @Component({
   selector: 'app-edit-screen',
   imports: [QuestionDisplay, CdkDropList, CdkDrag],
@@ -67,28 +66,28 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
   styles: /*css*/`
     .top-bar {
       position: absolute;
-      left: 10px;
-      top: 10px;
+      left: 0.625rem;
+      top: 0.625rem;
       display: flex;
-      gap: 10px;
+      gap: 0.625rem;
       align-items: center;
     }
 
     .title-row {
-      width: min(900px, 92vw);
-      margin: 84px auto 12px auto;
+      width: min(56.25rem, 92vw);
+      margin: 5.25rem auto 0.75rem auto;
       background: rgba(255, 255, 255, 0.75);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(0.625rem);
       border: 1px solid var(--card-border-color);
       box-shadow: var(--card-shadow);
-      border-radius: 18px;
-      padding: 16px;
+      border-radius: 1.125rem;
+      padding: 1rem;
     }
 
     :host {
       display: block;
       min-height: 100vh;
-      padding-bottom: 48px;
+      padding-bottom: 3rem;
     }
 
     .title-label {
@@ -101,15 +100,15 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
     }
 
     .title-label--spaced {
-      margin-top: 14px;
+      margin-top: 0.875rem;
     }
 
     .title-input {
       width: 100%;
       font-size: 1.65rem;
       font-weight: 800;
-      padding: 12px 14px;
-      border-radius: 14px;
+      padding: 0.75rem 0.875rem;
+      border-radius: 0.875rem;
       border: 1px solid rgba(15, 23, 42, 0.14);
       box-sizing: border-box;
       background: #ffffff;
@@ -117,34 +116,34 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
 
     .category-row {
       display: flex;
-      gap: 12px;
+      gap: 0.75rem;
       align-items: center;
     }
 
     .category-select {
       flex: 1;
-      border-radius: 12px;
+      border-radius: 0.75rem;
       border: 1px solid rgba(15, 23, 42, 0.14);
-      padding: 10px 12px;
+      padding: 0.625rem 0.75rem;
       background: #ffffff;
     }
 
     .category-new {
       flex: 2;
-      border-radius: 12px;
+      border-radius: 0.75rem;
       border: 1px solid rgba(15, 23, 42, 0.14);
-      padding: 10px 12px;
+      padding: 0.625rem 0.75rem;
       background: #ffffff;
     }
 
     .questions-container {
-      width: min(900px, 92vw);
+      width: min(56.25rem, 92vw);
       margin: 0 auto;
-      padding: 18px;
+      padding: 1.125rem;
       border: 1px solid var(--card-border-color);
-      border-radius: 18px;
+      border-radius: 1.125rem;
       background: rgba(255, 255, 255, 0.75);
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(0.625rem);
       box-shadow: var(--card-shadow);
       overflow: visible;
       scrollbar-color: rgba(15, 23, 42, 0.25) transparent;
@@ -152,42 +151,27 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
 
     .question-card {
       display: block;
-      padding: 12px;
-      margin: 12px 0;
-      border-radius: 16px;
+      padding: 0.75rem;
+      margin: 0.75rem 0;
+      border-radius: 1rem;
       border: 1px solid rgba(15, 23, 42, 0.12);
       background: #ffffff;
     }
 
-
-
     .new-question-button {
-      margin: 12px 0 4px 0;
-      padding: 12px;
-      border-radius: 14px;
+      margin: 0.75rem 0 0.25rem 0;
+      padding: 0.75rem;
+      border-radius: 0.875rem;
     }
 
-
     #back-button, #save-button {
-      border-radius: 10px;
-      gap: 8px;
+      border-radius: 0.625rem;
+      gap: 0.5rem;
     }
 
     .saved-check {
       color: var(--success-color);
       font-size: 0.95em;
-    }
-
-
-    .cdk-drag-preview {
-      box-shadow: var(--card-shadow-hover);
-      border-radius: 16px;
-      padding: 0px;
-      margin: 0px;
-    }
-
-    .cdk-drag-placeholder {
-      opacity: 0;
     }
 
     .cdk-drag-animating {
@@ -201,6 +185,8 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
   `,
 })
 export class EditScreen {
+  private readonly defaultCategoryName = window.localStorage.getItem('defaultCategoryName') ?? 'My Quizzes';
+
   id = signal(0);
 
   quizzesService = inject(Quizzes);
@@ -210,11 +196,11 @@ export class EditScreen {
   titleDraft = signal('');
   showSavedCheck = signal(false);
 
-  categories = signal<string[]>(['My Quizzes']);
-  categorySelection = signal<string>('My Quizzes');
+  categories = signal<string[]>([this.defaultCategoryName]);
+  categorySelection = signal<string>(this.defaultCategoryName);
   newCategoryName = signal('');
   categoryTouched = signal(false);
-  
+
   private activatedRoute = inject(ActivatedRoute);
 
   constructor() {
@@ -224,15 +210,15 @@ export class EditScreen {
 
     this.quizzesService.fetchedQuizes$.subscribe((quizData: any) => {
       const cats = new Set<string>();
-      cats.add('My Quizzes');
+      cats.add(this.defaultCategoryName);
       if (quizData && quizData.length > 0) {
-        quizData.forEach((q: any) => cats.add(q.category ?? 'My Quizzes'));
+        quizData.forEach((q: any) => cats.add(q.category ?? this.defaultCategoryName));
       }
       this.categories.set(Array.from(cats));
 
       const current = quizData?.find((q: any) => q.id === this.id());
       if (current && !this.categoryTouched()) {
-        this.categorySelection.set(current.category ?? 'My Quizzes');
+        this.categorySelection.set(current.category ?? this.defaultCategoryName);
       }
     });
 
@@ -278,7 +264,7 @@ export class EditScreen {
     const questionIDs = this.questions().map(q => q.id).filter(id => id !== 0);
 
     const category = this.categorySelection() === '__new__'
-      ? (this.newCategoryName().trim() || 'My Quizzes')
+      ? (this.newCategoryName().trim() || this.defaultCategoryName)
       : this.categorySelection();
 
     try {

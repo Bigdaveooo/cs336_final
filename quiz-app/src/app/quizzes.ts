@@ -1,7 +1,18 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { query, orderBy, collectionData, addDoc, collection, Firestore, where, updateDoc, doc, getDocs, deleteDoc } from '@angular/fire/firestore';
-
+import {
+  addDoc,
+  collection,
+  collectionData,
+  deleteDoc,
+  doc,
+  Firestore,
+  getDocs,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+} from '@angular/fire/firestore';
 
 export interface Question {
   id: number;
@@ -15,12 +26,6 @@ export interface Quiz {
   qCount: number;
   questions: number[];
   category?: string;
-}
-
-export interface User {
-  username: string;
-  password: string;
-  quizes: number[];
 }
 
 export interface QuestionReq {
@@ -37,13 +42,6 @@ export interface QuizReq {
   category?: string;
 }
 
-export interface UserReq {
-  username: string;
-  password: string;
-  quizes: string;
-}
-
-
 @Injectable({
   providedIn: 'root',
 })
@@ -55,7 +53,6 @@ export class Quizzes {
 
   quizes = signal<Quiz[]>([]);
   questions = signal<Question[]>([]);
-  maxQuizID = signal<number>(0);
   maxQuestionID = signal<number>(0);
 
   quizCollection: any;
@@ -99,11 +96,9 @@ export class Quizzes {
           .split(',')
           .map((s) => Number(s.trim()))
           .filter((n) => Number.isFinite(n) && n !== 0),
-        category: quiz.category ?? 'My Quizzes',
+        category: quiz.category,
       }));
       this.quizes.set(quizzes);
-      const maxId = quizzes.reduce((max, quiz) => quiz.id > max ? quiz.id : max, 0);
-      this.maxQuizID.set(maxId);
     });
 
     this.fetchedQuestions$.subscribe((questionData) => {
@@ -116,7 +111,6 @@ export class Quizzes {
       const maxId = questions.reduce((max, question) => question.id > max ? question.id : max, 0);
       this.maxQuestionID.set(maxId);
     });
-
   }
 
 
@@ -143,19 +137,6 @@ export class Quizzes {
 
   getQuestionByID(questionID: number): Question | undefined {
     return this.questions().find(q => q.id === questionID);
-  }
-
-
-  newQuiz(title: string) {
-    const newQuizID = this.maxQuizID() + 1;
-    this.maxQuizID.set(newQuizID);
-    const newQuiz: Quiz = {
-      id: newQuizID,
-      title: title,
-      qCount: 0,
-      questions: [],
-    };
-    addDoc(this.quizCollection, {id: newQuiz.id, title: newQuiz.title, questionCount: newQuiz.qCount, questions: newQuiz.questions.join(',')});
   }
 
   async newQuestion(ownedByID: number, term: string, definition: string) {
@@ -218,6 +199,28 @@ export class Quizzes {
     }
   }
 
+  private parseQuestionIds(raw: unknown): number[] {
+    return String(raw ?? '')
+      .split(',')
+      .map((s) => Number(String(s).trim()))
+      .filter((n) => Number.isFinite(n) && n !== 0);
+  }
+
+  private async deleteQuizDocAndQuestions(docSnap: any) {
+    const data: any = docSnap.data?.() ?? {};
+    const questionIds = this.parseQuestionIds(data.questions);
+
+    await Promise.all(
+      questionIds.map(async (qid) => {
+        const qDocId = await this.getQuestionDocIdById(qid);
+        if (!qDocId) return;
+        await deleteDoc(doc(this.firestore, 'questions', qDocId));
+      })
+    );
+
+    await deleteDoc(docSnap.ref);
+  }
+
   async addQuiz(title: string, category: string) {
     const id = Date.now();
     const payload: QuizReq = {
@@ -228,6 +231,45 @@ export class Quizzes {
       category,
     };
     await addDoc(this.quizCollection, payload);
+  }
+
+  async renameCategory(oldCategory: string, newCategory: string, includeMissing: boolean = false) {
+    const from = (oldCategory ?? '').trim();
+    const to = (newCategory ?? '').trim();
+
+    if (!from || !to) return;
+    if (from === to) return;
+
+    const toUpdate = new Map<string, any>();
+
+    // All docs explicitly in the old category
+    const q = query(this.quizCollection, where('category', '==', from));
+    const snapshot = await getDocs(q);
+    snapshot.docs.forEach((d) => toUpdate.set(d.id, d));
+
+    if (includeMissing) {
+      // Also migrate docs with missing/empty category
+      const all = await getDocs(this.quizCollection);
+      all.docs.forEach((d) => {
+        const data: any = d.data();
+        const cat = (data?.category ?? '').trim();
+        if (!cat) toUpdate.set(d.id, d);
+      });
+    }
+
+    if (toUpdate.size === 0) return;
+    await Promise.all(Array.from(toUpdate.values()).map((docSnap: any) => updateDoc(docSnap.ref, { category: to })));
+  }
+
+  async deleteCategory(category: string) {
+    const from = (category ?? '').trim();
+    if (!from) return;
+
+    const q = query(this.quizCollection, where('category', '==', from));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return;
+
+    await Promise.all(snapshot.docs.map((docSnap) => this.deleteQuizDocAndQuestions(docSnap)));
   }
 
 }
